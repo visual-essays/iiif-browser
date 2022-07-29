@@ -88,12 +88,14 @@
       }
     },
     async created() {
+
       let isGhp = location.hostname.indexOf('github.io') > 0
-      let [acct, repo, ...path] = location.pathname.split('/').filter(pe => pe).slice(isGhp ? 1 : 0)
+      let pathElems = location.pathname.split('/').filter(pe => pe)
+      let [acct, repo, ...path] = pathElems.slice(isGhp ? 1 : 0)
       this.acct = acct
       this.repo = repo
       this.path = path.join('/')
-      this.baseUrl = isGhp ? `${location.origin}/${this.acct}` : location.origin
+      this.baseUrl = isGhp ? `${location.origin}/${pathElems[0]}` : location.origin
       console.log(`acct=${this.acct} repo=${this.repo} path=${this.path}`)
     },
     async mounted() {},
