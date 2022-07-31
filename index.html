@@ -85,19 +85,23 @@
     },
     async created() {console.log('created')},
     async mounted() {
-
+      console.log(location)
       let isGhp = location.hostname.indexOf('github.io') > 0
       let pathElems = location.pathname.split('/').filter(pe => pe)
       let acct, repo, path
 
       if (isGhp) {
-        // acct = location.hostname.split('.')[0]
-        // repo = pathElems.length > 0 ? pathElems[0] : null
-        // path = pathElems.length > 1 ? pathElems.slice(1).join('/') : ''
-        acct = pathElems.length > 1 ? pathElems[1] : null
-        repo = pathElems.length > 2 ? pathElems[2] : null
-        path = pathElems.length > 3 ? pathElems.slice(3).join('/') : ''
-        this.baseUrl = `${location.origin}/${acct}`
+        if (location.hostname === 'visual-essays.github.io' && pathElems.length > 0 && pathElems[0] === 'iiif-browser') {
+          acct = pathElems.length > 1 ? pathElems[1] : null
+          repo = pathElems.length > 2 ? pathElems[2] : null
+          path = pathElems.length > 3 ? pathElems.slice(3).join('/') : ''
+          this.baseUrl = `${location.origin}/${pathElems[0]}`
+        } else {
+          acct = location.hostname.split('.')[0]
+          repo = pathElems.length > 0 ? pathElems[0] : null
+          path = pathElems.length > 1 ? pathElems.slice(1).join('/') : ''
+          this.baseUrl = `${location.origin}/${acct}`
+        }
       } else {
         acct = pathElems.length > 0 ? pathElems[0] : null
         repo = pathElems.length > 1 ? pathElems[1] : null
