@@ -90,16 +90,13 @@
       let pathElems = location.pathname.split('/').filter(pe => pe)
       let acct, repo, path
 
-      const referrerUrl = document.referrer
-      console.log(`referrerUrl=${referrerUrl}`)
-      if (referrerUrl) {
-        const referrer = new URL(referrerUrl)
-        console.log(referrer)
-      }
       if (isGhp) {
-        acct = location.hostname.split('.')[0]
-        repo = pathElems.length > 0 ? pathElems[0] : null
-        path = pathElems.length > 1 ? pathElems.slice(1).join('/') : ''
+        // acct = location.hostname.split('.')[0]
+        // repo = pathElems.length > 0 ? pathElems[0] : null
+        // path = pathElems.length > 1 ? pathElems.slice(1).join('/') : ''
+        acct = pathElems.length > 1 ? pathElems[1] : null
+        repo = pathElems.length > 2 ? pathElems[2] : null
+        path = pathElems.length > 3 ? pathElems.slice(3).join('/') : ''
         this.baseUrl = `${location.origin}/${acct}`
       } else {
         acct = pathElems.length > 0 ? pathElems[0] : null
@@ -110,7 +107,7 @@
       this.acct = acct
       this.repo = repo
       this.path = path
-      console.log(`acct=${this.acct} repo=${this.repo} path=${this.path} baseUrl=${this.baseUrl}`)
+      console.log(`acct=${this.acct} repo=${this.repo} path=${this.path} baseUrl=${this.baseUrl} isGhp=${isGhp}`)
     },
     methods: {
 
