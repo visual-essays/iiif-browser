@@ -12,10 +12,12 @@
   <style>
     [v-cloak] {display: none}
     * {box-sizing: border-box;}
-    body {margin: 0; font-family: Roboto, sans-serif;}
+    body {margin:12px; font-family: Roboto, sans-serif;}
     .name {margin-right:12px; cursor:pointer;}    
     .name:hover {font-weight:bold;}
     .breadCrumbs {display:flex; gap:12px;}
+    .dir {padding:6px; border:1px solid #ccc; border-radius:6px; font-size:90%; margin-bottom:6px; margin-right:12px;}
+    ve-image-grid {margin:24px 0;}
   </style>
 
 </head>
@@ -25,20 +27,16 @@
       <a v-for="item, idx in breadCrumbs" :key="`breadCrumb-${idx}`" :href="item.href" v-html="item.label"></a>
     </div>
     <div v-if="dirs.length > 0">
-      <div v-for="dir, idx in dirs" :key="`dir-${idx}`">
-        <a :href="`${baseUrl}/${dir}`" v-html="dir"></a>
-      </div>
+      <span class="dir" v-for="dir, idx in dirs" :key="`dir-${idx}`">
+        <a :href="`${baseUrl}/${dir}`" v-html="dir.split('/').pop()"></a>
+      </span>
     </div>
-    <div v-if="manifests.length > 0">
-      <div v-for="manifest, idx in manifests" :key="`manifest-${idx}`">
-        <a v-html="manifest" @click="openManifestViewer(manifest)"></a>
-      </div>
-    </div>
-    <ve-image-grid v-if="manifests.length > 0">
+    <ve-image-grid as-cards>
       <ul>
         <li v-for="manifest, idx in manifests" :key="`grid-${idx}`" v-html="manifest"></li>
       </ul>
     </ve-image-grid>
+
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
@@ -57,14 +55,12 @@
 
   <script type="module">
   
-  import { defineCustomElements } from 'https://unpkg.com/visual-essays/loader/index.js'
-
   const api = 'https://api.juncture-digital.org'
   const iiifServer = 'https://iiif.juncture-digital.org'
 
   const fileExtensions = new Set(['yaml','jpg','jpeg','jp2','png','tif','tiff'])
   const ignore = new Set(['iiif-props.yaml', 'iiif-props.template.yaml'])
-  
+
   new Vue({
     el: '#app',
     data: () => ({
@@ -73,7 +69,7 @@
       repo: '',
       path: '',
       dirs: [],
-      manifests: {},
+      manifests: [],
       viewerWindow: null
     }),
     computed: {
@@ -87,30 +83,36 @@
         return breadCrumbs
       }
     },
-    async created() {
+    async created() {console.log('created')},
+    async mounted() {
 
       let isGhp = location.hostname.indexOf('github.io') > 0
       let pathElems = location.pathname.split('/').filter(pe => pe)
-      let [acct, repo, ...path] = pathElems.slice(isGhp ? 1 : 0)
+      let acct, repo, path
+
+      const referrerUrl = document.referrer
+      console.log(referrerUrl)
+      if (referrerUrl) {
+        const referrer = new URL(referrerUrl)
+        console.log(referrer)
+      }
+      if (isGhp) {
+        acct = location.hostname.split('.')[0]
+        repo = pathElems.length > 0 ? pathElems[0] : null
+        path = pathElems.length > 1 ? pathElems.slice(1).join('/') : ''
+        this.baseUrl = `${location.origin}/${acct}`
+      } else {
+        acct = pathElems.length > 0 ? pathElems[0] : null
+        repo = pathElems.length > 1 ? pathElems[1] : null
+        path = pathElems.length > 2 ? pathElems.slice(2).join('/') : ''
+        this.baseUrl = location.origin
+      }
       this.acct = acct
       this.repo = repo
-      this.path = path.join('/')
-      this.baseUrl = isGhp ? `${location.origin}/${pathElems[0]}` : location.origin
-      console.log(`acct=${this.acct} repo=${this.repo} path=${this.path}`)
+      this.path = path
+      console.log(`acct=${this.acct} repo=${this.repo} path=${this.path} baseUrl=${this.baseUrl}`)
     },
-    async mounted() {},
     methods: {
-      manifestUrl(item) {
-        return `${iiifServer}/gh:${this.ghAcct}/${this.ghRepo}${this.path}${encodeURIComponent(item.name.split('.').slice(0,-1).join('.'))}/manifest.json`
-      },
-      getManifest(item) {
-        fetch(this.manifestUrl(item)).then(resp => resp.json())
-        .then(manifest => {
-          let updated = {...this.manifests}
-          updated[item.name] = manifest
-          this.manifests = updated
-        })
-      },
 
       openManifestViewer(manifestUrl) {
         // if (this.viewerWindow) { this.viewerWindow.close() }
@@ -121,11 +123,12 @@
     },
     watch: {
       root: {
-        async handler(path) {
-          let manifests = new Set()
-          let dirs = []
-          fetch(`${api}/dir/${this.root}/`).then(resp => resp.json())
+        async handler(root) {
+          console.log('watch', root)
+          await fetch(`${api}/dir/${this.root}/`).then(resp => resp.json())
           .then(items => {
+            let manifests = new Set()
+            let dirs = []
             items.forEach(item => {
               if (item.type === 'dir') {
                 dirs.push(`${this.root}/${item.name}`)
@@ -135,14 +138,14 @@
                   let name = elems.slice(0,-1).join('.')
                   let extension = elems.pop().toLowerCase()
                   if (fileExtensions.has(extension)) {                
-                    manifests.add(`${iiifServer}/gh:${this.root}/${name}/manifest.json`)
+                    manifests.add(`${iiifServer}/gh:${this.root}/${encodeURIComponent(name)}/manifest.json`)
                   }
                 }
               }
             })
             this.dirs = dirs
             this.manifests = Array.from(manifests).sort()
-          })
+          })     
         },
         immediate: false
       }
